@@ -4,7 +4,7 @@ A conversational AI chatbot that helps users explore the history of Nobel Prizes
 
 ## Overview
 
-This application allows users to interact with a comprehensive database of Physics Nobel Prize laureates from 1901 to 2025. Users can ask questions about:
+This application allows users to interact with a comprehensive database of Physics Nobel Prize laureates from 1901 to 2025 as well as the nobel prize API: https://www.nobelprize.org/about/developer-zone-2/. Users can ask questions about:
 - Specific Nobel Prize winners and their years
 - Research fields and the prizes awarded for them
 - Motivations behind Nobel Prize awards
