@@ -27,10 +27,10 @@ User Query → Gradio Interface → OpenAI GPT-4o-mini
                                         ↓
                     ┌───────────────────┴───────────────────┐
                     ↓                                       ↓
-         get_nobel_laureate_details()          get_nobel_history()
+         get_nobel_laureate_details()                get_nobel_history()
          (Query by specific year)              (Semantic search by research field)
                     ↓                                       ↓
-              Direct lookup                    ChromaDB Vector Search
+              Direct API lookup                    ChromaDB Vector Search
                     ↓                                       ↓
                     └───────────────────┬───────────────────┘
                                         ↓
