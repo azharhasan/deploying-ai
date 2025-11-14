@@ -9,15 +9,17 @@ import chromadb
 import pandas as pd
 from chromadb.utils.embedding_functions import OpenAIEmbeddingFunction
 from pydantic import BaseModel, Field
+from tavily import TavilyClient
+import getpass
 
-chroma_client = chromadb.PersistentClient(path="./assignment_chat")
 
 _logs = get_logger(__name__)
 
 load_dotenv(".env")
 load_dotenv(".secrets")
 
-
+chroma_client = chromadb.PersistentClient(path="./assignment_chat")
+tavily_client = TavilyClient()
 client = OpenAI()
 
 open_ai_model = os.getenv("OPENAI_MODEL", "gpt-4")
@@ -61,7 +63,42 @@ tools = [
         },
         
     },
+    {
+        "type": "function",
+        "name": "tavily_search",
+        "description": "Search the web for current, up-to-date information on nobel prize in chemistry. Use this when you need information on nobel prize in chemistry",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "query": {
+                    "type": "string",
+                    "description": "The search query to find current information about"
+                }
+            },
+            "required": ["query"],
+            "additionalProperties": False
+        }
+    },
 ]
+
+##### service 3 ########
+
+  
+def extract_summary_from_tavily_output(input_query: str):
+    result = tavily_client.search(input_query)
+    flat_text = ""
+    for item in result.get('results', []):
+        flat_text += item.get('content', '') + " "
+    
+    search_results_flat_summarization_prompt = client.responses.create(
+    model = 'gpt-4o-mini',
+    input = f"Summarize this text output from tavily_search results <text>{flat_text} </text> in crisp and clear format under 50 words. Use a victorian english tone")
+    return search_results_flat_summarization_prompt.output_text
+
+
+
+##### service 3 ########
+
 ##### service 2 ########
 nobel_prizes_in_physics_dataset=pd.read_csv("./assignment_chat/physics_nobel_prizes.csv") #loaded nobel prize dataset
 
@@ -214,7 +251,7 @@ def assignment_chat(message: str, history: list[dict] = []) -> str:
                 args = json.loads(item.arguments)
                 _logs.info(f'Function call args: {args}')
                 
-                # Call the horoscope function
+                # Call the nobel prize API function
                 NobelInfo = get_nobel_laureate_details(**args)
                 
                 # Add function call result to conversation
@@ -235,7 +272,7 @@ def assignment_chat(message: str, history: list[dict] = []) -> str:
                 args = json.loads(item.arguments)
                 _logs.info(f'Function call args: {args}')
                 
-                # Call the horoscope function
+                # Call the semantic search function
                 SearchResultDetails = get_nobel_history(**args)
                 
                 # Add function call result to conversation
@@ -250,8 +287,27 @@ def assignment_chat(message: str, history: list[dict] = []) -> str:
                 _logs.debug(f"Function call output: {func_call_output}")
 
                 conversation_input = conversation_input + [func_call_output]
+
+            elif item.name == "extract_summary_from_tavily_output":
+                args = json.loads(item.arguments)
+                _logs.info(f"Function call args: {args}")
+    
+                # Call Tavily search
+                TavilySearchOutput = extract_summary_from_tavily_output(**args)
+    
+                # Add function call result to conversation
+                func_call_output = {
+                    "type": "function_call_output",
+                    "call_id": item.call_id,
+                    "output": json.dumps({
+                        "TavilySearchOutput": TavilySearchOutput
+                    })
+                }
+                _logs.debug(f"Function call output: {func_call_output}")
+
+                conversation_input = conversation_input + [func_call_output]
                 
-                # Make second API call with function result
+                
         response = client.responses.create(
                     model=open_ai_model,
                     instructions=instructions,
